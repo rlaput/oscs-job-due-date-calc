@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Job Due Date Calculator</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f6f8;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      .container {
+        background: #ffffff;
+        padding: 30px 40px;
+        border-radius: 10px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        width: 320px;
+      }
+
+      h2 {
+        margin-bottom: 20px;
+        color: #333;
+      }
+
+      label {
+        display: block;
+        margin: 15px 0 5px;
+        color: #555;
+        font-weight: bold;
+        text-align: left;
+      }
+
+      select,
+      input[type="date"],
+      input[type="number"] {
+        width: 100%;
+        padding: 8px 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 14px;
+      }
+
+      button {
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        padding: 10px 15px;
+        font-size: 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 10px;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      #result {
+        margin-top: 20px;
+        color: #007bff;
+        font-weight: bold;
+        font-size: 18px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Job Due Date Calculator</h2>
+
+      <label for="customerType">Customer Type:</label>
+      <select id="customerType" onchange="updateServices()"></select>
+
+      <label for="service">Service:</label>
+      <select id="service" onchange="updateDays()"></select>
+
+      <div style="text-align: left;">
+        <label for="cadCheck">CAD?</label>
+        <input type="checkbox" id="cadCheck" onchange="adjustDays()" />
+      </div>
+
+      <label for="daysToAdd">Days to Add:</label>
+      <input type="number" id="daysToAdd" min="1" />
+
+      <label for="startDate">Start Date:</label>
+      <input type="date" id="startDate" />
+
+      <button onclick="calculateDate()">Calculate</button>
+
+      <h3 id="result"></h3>
+    </div>
+
+    <script src="servicesLeadTime.js"></script>
+    <script src="holidayData.js"></script>
+    <script>
+      function formatDateNZtoISO(nzDate) {
+        const [day, month, year] = nzDate.split("/");
+        return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+      }
+
+      function getHolidayDates() {
+        return holidayData
+          .filter((h) => h.Type === "National")
+          .map((h) => formatDateNZtoISO(h.ObservedDate));
+      }
+
+      function updateServices() {
+        const customerType = document.getElementById("customerType").value;
+        const servicesDropdown = document.getElementById("service");
+        servicesDropdown.innerHTML = "";
+
+        const services =
+          servicesLeadTime.find((c) => c.CustomerType === customerType)
+            ?.Services || {};
+        Object.keys(services).forEach((service) => {
+          const option = document.createElement("option");
+          option.value = service;
+          option.textContent = service;
+          servicesDropdown.appendChild(option);
+        });
+
+        updateDays();
+      }
+
+      function updateDays() {
+        const customerType = document.getElementById("customerType").value;
+        const service = document.getElementById("service").value;
+        const leadTime = servicesLeadTime.find(
+          (c) => c.CustomerType === customerType
+        )?.Services[service];
+
+        const daysInput = document.getElementById("daysToAdd");
+        daysInput.value = leadTime || "";
+        daysInput.setAttribute("data-base-days", daysInput.value);
+
+        adjustDays();
+      }
+
+      function adjustDays() {
+        const daysInput = document.getElementById("daysToAdd");
+        const cadChecked = document.getElementById("cadCheck").checked;
+        const baseDays =
+          parseInt(daysInput.getAttribute("data-base-days")) ||
+          parseInt(daysInput.value);
+
+        if (!isNaN(baseDays)) {
+          daysInput.setAttribute("data-base-days", baseDays);
+          daysInput.value = cadChecked ? baseDays + 5 : baseDays;
+        }
+      }
+
+      function populateCustomerTypes() {
+        const customerDropdown = document.getElementById("customerType");
+        servicesLeadTime.forEach(({ CustomerType }) => {
+          const option = document.createElement("option");
+          option.value = CustomerType;
+          option.textContent = CustomerType;
+          customerDropdown.appendChild(option);
+        });
+        updateServices();
+      }
+
+      function calculateDate() {
+        const startInput = document.getElementById("startDate").value;
+        const daysToAdd = parseInt(document.getElementById("daysToAdd").value);
+
+        if (!startInput || isNaN(daysToAdd)) {
+          document.getElementById("result").innerText =
+            "Please enter valid values.";
+          return;
+        }
+
+        let currentDate = new Date(startInput);
+        let remainingDays = daysToAdd;
+        const holidays = getHolidayDates();
+
+        while (remainingDays > 0) {
+          currentDate.setDate(currentDate.getDate() + 1);
+          const dateStr = currentDate.toISOString().split("T")[0];
+          const isWeekend =
+            currentDate.getDay() === 0 || currentDate.getDay() === 6;
+          const isHoliday = holidays.includes(dateStr);
+
+          if (!isWeekend && !isHoliday) {
+            remainingDays--;
+          }
+        }
+
+        const dd = String(currentDate.getDate()).padStart(2, "0");
+        const mm = String(currentDate.getMonth() + 1).padStart(2, "0");
+        const yyyy = currentDate.getFullYear();
+
+        document.getElementById(
+          "result"
+        ).innerText = `Job ready by: ${dd}/${mm}/${yyyy}`;
+      }
+
+      window.onload = populateCustomerTypes;
+    </script>
+  </body>
+</html>

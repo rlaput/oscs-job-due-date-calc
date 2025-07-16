@@ -1,1 +1,1 @@
-const additionalServices = [{ name: "CAD", days: 5 }];
+const additionalServices = [{ name: "CAD", days: 3 }];

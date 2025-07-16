@@ -97,14 +97,28 @@
     </div>
 
     <script src="servicesLeadTime.js"></script>
-    <script src="holidayData.js"></script>
     <script>
+      async function loadHolidays() {
+        const response = await fetch('holidays.json');
+        const data = await response.json();
+        return data;
+      }
+
+      let holidayData = [];
+
+      async function initializeHolidays() {
+        holidayData = await loadHolidays();
+      }
+
       function formatDateNZtoISO(nzDate) {
         const [day, month, year] = nzDate.split("/");
         return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
       }
 
-      function getHolidayDates() {
+      async function getHolidayDates() {
+        if (holidayData.length === 0) {
+          await initializeHolidays();
+        }
         return holidayData
           .filter((h) => h.Type === "National")
           .map((h) => formatDateNZtoISO(h.ObservedDate));
@@ -166,7 +180,7 @@
         updateServices();
       }
 
-      function calculateDate() {
+      async function calculateDate() {
         const startInput = document.getElementById("startDate").value;
         const daysToAdd = parseInt(document.getElementById("daysToAdd").value);
 
@@ -178,7 +192,7 @@
 
         let currentDate = new Date(startInput);
         let remainingDays = daysToAdd;
-        const holidays = getHolidayDates();
+        const holidays = await getHolidayDates();
 
         while (remainingDays > 0) {
           currentDate.setDate(currentDate.getDate() + 1);
@@ -201,7 +215,22 @@
         ).innerText = `Job ready by: ${dd}/${mm}/${yyyy}`;
       }
 
-      window.onload = populateCustomerTypes;
+      window.onload = () => {
+        populateCustomerTypes();
+        initializeHolidays();
+
+        // Set default start date to today
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        let mm = today.getMonth() + 1; // Months start at 0!
+        let dd = today.getDate();
+
+        if (dd < 10) dd = '0' + dd;
+        if (mm < 10) mm = '0' + mm;
+
+        const formattedToday = yyyy + '-' + mm + '-' + dd;
+        document.getElementById("startDate").value = formattedToday;
+      };
     </script>
   </body>
 </html>

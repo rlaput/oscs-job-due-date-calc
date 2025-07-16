@@ -1,6 +1,6 @@
 const servicesLeadTime = [
   {
-    CustomerType: "AccountHolder",
+    CustomerType: "Account Holder",
     Services: {
       LaserCutting: 4,
       LaserCuttingAndFolding: 5,
@@ -9,7 +9,7 @@ const servicesLeadTime = [
     },
   },
   {
-    CustomerType: "CashSale",
+    CustomerType: "Cash Sale",
     Services: {
       LaserCutting: 5,
       LaserCuttingAndFolding: 6,
@@ -18,7 +18,7 @@ const servicesLeadTime = [
     },
   },
   {
-    CustomerType: "Top15",
+    CustomerType: "Top 15",
     Services: {
       LaserCutting: 3,
       LaserCuttingAndFolding: 4,

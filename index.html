@@ -79,7 +79,9 @@
 
       <label for="service">Service:</label>
       <select id="service" onchange="updateDays()"></select>
+      <div id="serviceHelpText" style="color: green;"></div>
 
+      <label>Additional Services:</label>
       <div id="additionalServicesContainer" style="text-align: left"></div>
 
       <label for="daysToAdd">Days to Add:</label>
@@ -109,7 +111,7 @@
 
           const label = document.createElement("label");
           label.htmlFor = service.name + "Check";
-          label.textContent = service.name;
+          label.textContent = `${service.name} - ${service.days} day(s)`;
 
           const div = document.createElement("div");
           div.style.textAlign = "left";
@@ -175,6 +177,9 @@
         let daysInput = document.getElementById("daysToAdd");
         daysInput.value = leadTime || "";
         daysInput.setAttribute("data-base-days", daysInput.value);
+
+        const serviceHelpText = document.getElementById("serviceHelpText");
+        serviceHelpText.textContent = leadTime ? `Selected service lead time is ${leadTime} day(s).` : "";
 
         adjustDays();
       }

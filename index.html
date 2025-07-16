@@ -80,10 +80,7 @@
       <label for="service">Service:</label>
       <select id="service" onchange="updateDays()"></select>
 
-      <div style="text-align: left;">
-        <label for="cadCheck">CAD?</label>
-        <input type="checkbox" id="cadCheck" onchange="adjustDays()" />
-      </div>
+      <div id="additionalServicesContainer" style="text-align: left"></div>
 
       <label for="daysToAdd">Days to Add:</label>
       <input type="number" id="daysToAdd" min="1" />
@@ -97,9 +94,35 @@
     </div>
 
     <script src="servicesLeadTime.js"></script>
+    <script src="additionalServices.js"></script>
     <script>
+      function generateAdditionalServices() {
+        const container = document.getElementById(
+          "additionalServicesContainer"
+        );
+        additionalServices.forEach((service) => {
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.id = service.name + "Check";
+          checkbox.value = service.name;
+          checkbox.onchange = adjustDays;
+
+          const label = document.createElement("label");
+          label.htmlFor = service.name + "Check";
+          label.textContent = service.name;
+
+          const div = document.createElement("div");
+          div.style.textAlign = "left";
+          div.style.display = "flex";
+          div.style.alignItems = "center";
+          div.appendChild(checkbox);
+          div.appendChild(label);
+          container.appendChild(div);
+        });
+      }
+
       async function loadHolidays() {
-        const response = await fetch('holidays.json');
+        const response = await fetch("holidays.json");
         const data = await response.json();
         return data;
       }
@@ -129,13 +152,11 @@
         const servicesDropdown = document.getElementById("service");
         servicesDropdown.innerHTML = "";
 
-        const services =
-          servicesLeadTime.find((c) => c.CustomerType === customerType)
-            ?.Services || {};
-        Object.keys(services).forEach((service) => {
+        const services = servicesLeadTime[customerType] || [];
+        services.forEach((service) => {
           const option = document.createElement("option");
-          option.value = service;
-          option.textContent = service;
+          option.value = service.name;
+          option.textContent = service.name;
           servicesDropdown.appendChild(option);
         });
 
@@ -145,11 +166,13 @@
       function updateDays() {
         const customerType = document.getElementById("customerType").value;
         const service = document.getElementById("service").value;
-        const leadTime = servicesLeadTime.find(
-          (c) => c.CustomerType === customerType
-        )?.Services[service];
+        const customerServices = servicesLeadTime[customerType] || [];
+        const selectedService = customerServices.find(
+          (s) => s.name === service
+        );
+        const leadTime = selectedService ? selectedService.days : undefined;
 
-        const daysInput = document.getElementById("daysToAdd");
+        let daysInput = document.getElementById("daysToAdd");
         daysInput.value = leadTime || "";
         daysInput.setAttribute("data-base-days", daysInput.value);
 
@@ -157,21 +180,24 @@
       }
 
       function adjustDays() {
-        const daysInput = document.getElementById("daysToAdd");
-        const cadChecked = document.getElementById("cadCheck").checked;
-        const baseDays =
+        let daysInput = document.getElementById("daysToAdd");
+        let baseDays =
           parseInt(daysInput.getAttribute("data-base-days")) ||
-          parseInt(daysInput.value);
-
-        if (!isNaN(baseDays)) {
-          daysInput.setAttribute("data-base-days", baseDays);
-          daysInput.value = cadChecked ? baseDays + 5 : baseDays;
-        }
+          parseInt(daysInput.value) ||
+          0;
+        let additionalDays = 0;
+        additionalServices.forEach((service) => {
+          let checkbox = document.getElementById(service.name + "Check");
+          if (checkbox && checkbox.checked) {
+            additionalDays += service.days;
+          }
+        });
+        daysInput.value = baseDays + additionalDays;
       }
 
       function populateCustomerTypes() {
         const customerDropdown = document.getElementById("customerType");
-        servicesLeadTime.forEach(({ CustomerType }) => {
+        Object.keys(servicesLeadTime).forEach((CustomerType) => {
           const option = document.createElement("option");
           option.value = CustomerType;
           option.textContent = CustomerType;
@@ -218,6 +244,7 @@
       window.onload = () => {
         populateCustomerTypes();
         initializeHolidays();
+        generateAdditionalServices();
 
         // Set default start date to today
         const today = new Date();
@@ -225,10 +252,10 @@
         let mm = today.getMonth() + 1; // Months start at 0!
         let dd = today.getDate();
 
-        if (dd < 10) dd = '0' + dd;
-        if (mm < 10) mm = '0' + mm;
+        if (dd < 10) dd = "0" + dd;
+        if (mm < 10) mm = "0" + mm;
 
-        const formattedToday = yyyy + '-' + mm + '-' + dd;
+        const formattedToday = yyyy + "-" + mm + "-" + dd;
         document.getElementById("startDate").value = formattedToday;
       };
     </script>

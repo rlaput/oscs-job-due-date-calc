@@ -1,0 +1,25 @@
+name: Update Holidays
+
+on:
+  schedule:
+    - cron: "0 0 * * SUN"
+  workflow_dispatch:
+
+jobs:
+  update-holidays:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Fetch and save holidays
+        run: |
+          curl "https://api.public-holidays.nz/v1/all?apikey=${{ secrets.API_KEY }}" > holidays.json
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add holidays.json
+          git commit -m "Update holidays.json"
+          git push origin main

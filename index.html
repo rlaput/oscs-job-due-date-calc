@@ -2,6 +2,60 @@
 <html>
   <head>
     <title>Job Due Date Calculator</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      // Dynamic cache busting - load JS files with current timestamp
+      function loadScriptWithCacheBusting(src) {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          const timestamp = Date.now();
+          script.src = `${src}?v=${timestamp}`;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      // Load scripts sequentially to ensure proper order
+      async function loadScripts() {
+        try {
+          await loadScriptWithCacheBusting('servicesLeadTime.js');
+          await loadScriptWithCacheBusting('additionalServices.js');
+          // Initialize the app after scripts are loaded
+          initializeApp();
+        } catch (error) {
+          console.error('Error loading scripts:', error);
+        }
+      }
+
+      // Initialize app function
+      function initializeApp() {
+        // Event handlers
+        $("#customerType").on('change', updateServices);
+        $("#service").on('change', updateDays);
+        $("#calculateBtn").on('click', calculateDate);
+
+        // Initialize
+        populateCustomerTypes();
+        initializeHolidays();
+        generateAdditionalServices();
+
+        // Set default start date to today
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        let mm = today.getMonth() + 1;
+        let dd = today.getDate();
+
+        if (dd < 10) dd = "0" + dd;
+        if (mm < 10) mm = "0" + mm;
+
+        const formattedToday = yyyy + "-" + mm + "-" + dd;
+        $("#startDate").val(formattedToday);
+      }
+
+      // Load scripts when DOM is ready
+      document.addEventListener('DOMContentLoaded', loadScripts);
+    </script>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -75,10 +129,10 @@
       <h2>Job Due Date Calculator</h2>
 
       <label for="customerType">Customer Type:</label>
-      <select id="customerType" onchange="updateServices()"></select>
+      <select id="customerType"></select>
 
       <label for="service">Service:</label>
-      <select id="service" onchange="updateDays()"></select>
+      <select id="service"></select>
       <div id="serviceHelpText" style="color: green;"></div>
 
       <label>Additional Services:</label>
@@ -90,45 +144,46 @@
       <label for="startDate">Start Date:</label>
       <input type="date" id="startDate" />
 
-      <button onclick="calculateDate()">Calculate</button>
+      <button id="calculateBtn">Calculate</button>
 
       <h3 id="result"></h3>
     </div>
 
     <script>
-  document.write('<script src="servicesLeadTime.js?v=' + new Date().getTime() + '"><\/script>');
-  document.write('<script src="additionalServices.js?v=' + new Date().getTime() + '"><\/script>');
-</script>
-    <script>
       function generateAdditionalServices() {
-        const container = document.getElementById(
-          "additionalServicesContainer"
-        );
+        const $container = $("#additionalServicesContainer");
         additionalServices.forEach((service) => {
-          const checkbox = document.createElement("input");
-          checkbox.type = "checkbox";
-          checkbox.id = service.name + "Check";
-          checkbox.value = service.name;
-          checkbox.onchange = adjustDays;
-
-          const label = document.createElement("label");
-          label.htmlFor = service.name + "Check";
-          label.textContent = `${service.name} - ${service.days} day(s)`;
-
-          const div = document.createElement("div");
-          div.style.textAlign = "left";
-          div.style.display = "flex";
-          div.style.alignItems = "center";
-          div.appendChild(checkbox);
-          div.appendChild(label);
-          container.appendChild(div);
+          const $div = $('<div>').css({
+            textAlign: 'left',
+            display: 'flex',
+            alignItems: 'center'
+          });
+          
+          const $checkbox = $('<input>')
+            .attr({
+              type: 'checkbox',
+              id: service.name + 'Check',
+              value: service.name
+            })
+            .on('change', adjustDays);
+          
+          const $label = $('<label>')
+            .attr('for', service.name + 'Check')
+            .text(`${service.name} - ${service.days} day(s)`);
+          
+          $div.append($checkbox).append($label);
+          $container.append($div);
         });
       }
 
       async function loadHolidays() {
-        const response = await fetch("holidays.json");
-        const data = await response.json();
-        return data;
+        try {
+          const data = await $.getJSON("holidays.json");
+          return data;
+        } catch (error) {
+          console.error('Error loading holidays:', error);
+          return [];
+        }
       }
 
       let holidayData = [];
@@ -152,74 +207,71 @@
       }
 
       function updateServices() {
-        const customerType = document.getElementById("customerType").value;
-        const servicesDropdown = document.getElementById("service");
-        servicesDropdown.innerHTML = "";
+        const customerType = $("#customerType").val();
+        const $servicesDropdown = $("#service");
+        $servicesDropdown.empty();
 
         const services = servicesLeadTime[customerType] || [];
         services.forEach((service) => {
-          const option = document.createElement("option");
-          option.value = service.name;
-          option.textContent = service.name;
-          servicesDropdown.appendChild(option);
+          $servicesDropdown.append(
+            $('<option>').val(service.name).text(service.name)
+          );
         });
 
         updateDays();
       }
 
       function updateDays() {
-        const customerType = document.getElementById("customerType").value;
-        const service = document.getElementById("service").value;
+        const customerType = $("#customerType").val();
+        const service = $("#service").val();
         const customerServices = servicesLeadTime[customerType] || [];
         const selectedService = customerServices.find(
           (s) => s.name === service
         );
         const leadTime = selectedService ? selectedService.days : undefined;
 
-        let daysInput = document.getElementById("daysToAdd");
-        daysInput.value = leadTime || "";
-        daysInput.setAttribute("data-base-days", daysInput.value);
+        const $daysInput = $("#daysToAdd");
+        $daysInput.val(leadTime || "");
+        $daysInput.attr("data-base-days", $daysInput.val());
 
-        const serviceHelpText = document.getElementById("serviceHelpText");
-        serviceHelpText.textContent = leadTime ? `Selected service lead time is ${leadTime} day(s).` : "";
+        const helpText = leadTime ? `Selected service lead time is ${leadTime} day(s).` : "";
+        $("#serviceHelpText").text(helpText);
 
         adjustDays();
       }
 
       function adjustDays() {
-        let daysInput = document.getElementById("daysToAdd");
-        let baseDays =
-          parseInt(daysInput.getAttribute("data-base-days")) ||
-          parseInt(daysInput.value) ||
-          0;
+        const $daysInput = $("#daysToAdd");
+        const baseDays = parseInt($daysInput.attr("data-base-days")) || 
+                        parseInt($daysInput.val()) || 0;
         let additionalDays = 0;
+        
         additionalServices.forEach((service) => {
-          let checkbox = document.getElementById(service.name + "Check");
-          if (checkbox && checkbox.checked) {
+          const $checkbox = $("#" + service.name + "Check");
+          if ($checkbox.is(':checked')) {
             additionalDays += service.days;
           }
         });
-        daysInput.value = baseDays + additionalDays;
+        
+        $daysInput.val(baseDays + additionalDays);
       }
 
       function populateCustomerTypes() {
-        const customerDropdown = document.getElementById("customerType");
-        Object.keys(servicesLeadTime).forEach((CustomerType) => {
-          const option = document.createElement("option");
-          option.value = CustomerType;
-          option.textContent = CustomerType;
-          customerDropdown.appendChild(option);
+        const $customerDropdown = $("#customerType");
+        Object.keys(servicesLeadTime).forEach((customerType) => {
+          $customerDropdown.append(
+            $('<option>').val(customerType).text(customerType)
+          );
         });
         updateServices();
       }
 
       async function calculateDate() {
-        const startInput = document.getElementById("startDate").value;
-        const daysToAdd = parseInt(document.getElementById("daysToAdd").value);
+        const startInput = $("#startDate").val();
+        const daysToAdd = parseInt($("#daysToAdd").val());
 
         if (!startInput || isNaN(daysToAdd)) {
-          document.getElementById("result").innerText =
-            "Please enter valid values.";
+          $("#result").text("Please enter valid values.");
           return;
         }
 
@@ -243,28 +295,9 @@
         const mm = String(currentDate.getMonth() + 1).padStart(2, "0");
         const yyyy = currentDate.getFullYear();
 
-        document.getElementById(
-          "result"
-        ).innerText = `Job ready by: ${dd}/${mm}/${yyyy}`;
+        $("#result").text(`Job ready by: ${dd}/${mm}/${yyyy}`);
       }
 
-      window.onload = () => {
-        populateCustomerTypes();
-        initializeHolidays();
-        generateAdditionalServices();
-
-        // Set default start date to today
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        let mm = today.getMonth() + 1; // Months start at 0!
-        let dd = today.getDate();
-
-        if (dd < 10) dd = "0" + dd;
-        if (mm < 10) mm = "0" + mm;
-
-        const formattedToday = yyyy + "-" + mm + "-" + dd;
-        document.getElementById("startDate").value = formattedToday;
-      };
     </script>
   </body>
 </html>

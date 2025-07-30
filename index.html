@@ -33,7 +33,7 @@
         // Event handlers
         $("#customerType").on('change', updateServices);
         $("#service").on('change', updateDays);
-        $("#calculateBtn").on('click', calculateDate);
+        $("#calculateBtn").on('click', calculateDates);
 
         // Initialize
         populateCustomerTypes();
@@ -228,13 +228,13 @@
         const selectedService = customerServices.find(
           (s) => s.name === service
         );
-        const leadTime = selectedService ? selectedService.days : undefined;
+        const leadTime = selectedService ? selectedService.productionDays : undefined;
 
         const $daysInput = $("#daysToAdd");
         $daysInput.val(leadTime || "");
         $daysInput.attr("data-base-days", $daysInput.val());
 
-        const helpText = leadTime ? `Selected service lead time is ${leadTime} day(s).` : "";
+        const helpText = leadTime ? `Selected service production time is ${leadTime} day(s).` : "";
         $("#serviceHelpText").text(helpText);
 
         adjustDays();
@@ -266,16 +266,9 @@
         updateServices();
       }
 
-      async function calculateDate() {
-        const startInput = $("#startDate").val();
-        const daysToAdd = parseInt($("#daysToAdd").val());
-
-        if (!startInput || isNaN(daysToAdd)) {
-          $("#result").text("Please enter valid values.");
-          return;
-        }
-
-        let currentDate = new Date(startInput);
+      // Reusable function to calculate date by adding business days
+      async function calculateDate(startDateInput, daysToAdd) {
+        let currentDate = new Date(startDateInput);
         let remainingDays = daysToAdd;
         const holidays = await getHolidayDates();
 
@@ -291,11 +284,55 @@
           }
         }
 
-        const dd = String(currentDate.getDate()).padStart(2, "0");
-        const mm = String(currentDate.getMonth() + 1).padStart(2, "0");
-        const yyyy = currentDate.getFullYear();
+        return new Date(currentDate);
+      }
 
-        $("#result").text(`Job ready by: ${dd}/${mm}/${yyyy}`);
+      // Main calculation function called by the Calculate button
+      async function calculateDates() {
+        const startInput = $("#startDate").val();
+        const daysToAdd = parseInt($("#daysToAdd").val());
+
+        if (!startInput || isNaN(daysToAdd)) {
+          $("#result").text("Please enter valid values.");
+          return;
+        }
+
+        // Get the selected service to access deliveryDays
+        const customerType = $("#customerType").val();
+        const serviceName = $("#service").val();
+        const customerServices = servicesLeadTime[customerType] || [];
+        const selectedService = customerServices.find(
+          (s) => s.name === serviceName
+        );
+
+        if (!selectedService) {
+          $("#result").text("Please select a valid service.");
+          return;
+        }
+
+        try {
+          // Calculate job ready date using start date and total production days
+          const jobReadyDate = await calculateDate(startInput, daysToAdd);
+          
+          // Calculate delivery date using job ready date and delivery days
+          const deliveryDate = await calculateDate(jobReadyDate, selectedService.deliveryDays);
+
+          // Format both dates for display
+          const formatDate = (date) => {
+            const dd = String(date.getDate()).padStart(2, "0");
+            const mm = String(date.getMonth() + 1).padStart(2, "0");
+            const yyyy = date.getFullYear();
+            return `${dd}/${mm}/${yyyy}`;
+          };
+
+          const jobReadyFormatted = formatDate(jobReadyDate);
+          const deliveryFormatted = formatDate(deliveryDate);
+
+          $("#result").html(`Job ready by: ${jobReadyFormatted} <br /> Delivery by: ${deliveryFormatted}`);
+        } catch (error) {
+          console.error('Error calculating dates:', error);
+          $("#result").text("Error calculating dates. Please try again.");
+        }
       }
 
     </script>

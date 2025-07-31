@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Job Due Date Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
       // Dynamic cache busting - load JS files with current timestamp
@@ -60,110 +62,92 @@
       body {
         font-family: Arial, sans-serif;
         background: #f4f6f8;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
+        min-height: 100vh;
+        padding: 5px;
       }
 
-      .container {
+      /* Compact form styles */
+      .compact-label {
+        margin-bottom: 0.25rem;
+      }
+      .form-control-sm, .form-select-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+      }
+      .small {
+        font-size: 0.875rem;
+      }
+      .calculator-container {
         background: #ffffff;
-        padding: 30px 40px;
         border-radius: 10px;
         box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-        text-align: center;
-        width: 320px;
-      }
-
-      h2 {
-        margin-bottom: 20px;
-        color: #333;
-      }
-
-      label {
-        display: block;
-        margin: 15px 0 5px;
-        color: #555;
-        font-weight: bold;
-        text-align: left;
-      }
-
-      select,
-      input[type="date"],
-      input[type="number"] {
-        width: 100%;
-        padding: 8px 10px;
-        margin-bottom: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        font-size: 14px;
-      }
-
-      button {
-        background-color: #007bff;
-        color: #fff;
-        border: none;
-        padding: 10px 15px;
-        font-size: 16px;
-        border-radius: 5px;
-        cursor: pointer;
-        margin-top: 10px;
-      }
-
-      button:hover {
-        background-color: #0056b3;
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 20px 15px;
       }
 
       #result {
         margin-top: 20px;
         color: #007bff;
         font-weight: bold;
-        font-size: 25px;
+        font-size: 20px;
       }
 
       #deliverBy {
         color: red !important;
         font-weight: normal !important;
-        font-size: 20px !important;
+        font-size: 15px !important;
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <h2>Job Due Date Calculator</h2>
+    <div class="container calculator-container">
+      <h2 class="mb-4">Job Due Date Calculator</h2>
+      
+      <div class="row g-3">
+        <div class="col-12">
+          <label for="customerType" class="form-label compact-label">Customer Type:</label>
+          <select id="customerType" class="form-select form-select-sm"></select>
+        </div>
 
-      <label for="customerType">Customer Type:</label>
-      <select id="customerType"></select>
+        <div class="col-12">
+          <label for="service" class="form-label compact-label">Service:</label>
+          <select id="service" class="form-select form-select-sm"></select>
+          <div id="serviceHelpText" class="text-success mt-1 small"></div>
+        </div>
 
-      <label for="service">Service:</label>
-      <select id="service"></select>
-      <div id="serviceHelpText" style="color: green;"></div>
+        <div class="col-12">
+          <label class="form-label compact-label">Additional Services:</label>
+          <div id="additionalServicesContainer" class="row row-cols-2 row-cols-md-3 g-2"></div>
+        </div>
 
-      <label>Additional Services:</label>
-      <div id="additionalServicesContainer" style="text-align: left; display: flex; flex-wrap: wrap; gap: 15px;"></div>
+        <div class="col-12">
+          <label for="daysToAdd" class="form-label compact-label">Days to Add:</label>
+          <input type="number" id="daysToAdd" min="1" class="form-control form-control-sm" />
+        </div>
 
-      <label for="daysToAdd">Days to Add:</label>
-      <input type="number" id="daysToAdd" min="1" />
+        <div class="col-12">
+          <label for="startDate" class="form-label compact-label">Start Date:</label>
+          <input type="date" id="startDate" class="form-control form-control-sm" />
+        </div>
 
-      <label for="startDate">Start Date:</label>
-      <input type="date" id="startDate" />
+        <div class="col-12">
+          <button id="calculateBtn" class="btn btn-primary btn-sm">Calculate</button>
+        </div>
 
-      <button id="calculateBtn">Calculate</button>
-
-      <h3 id="result"></h3>
+        <div class="col-12">
+          <div id="result" class="fs-5 mt-3 small"></div>
+        </div>
+      </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
       function generateAdditionalServices() {
         const $container = $("#additionalServicesContainer");
         additionalServices.forEach((service) => {
-          const $div = $('<div>').css({
-            textAlign: 'left',
-            display: 'flex',
-            alignItems: 'center'
-          });
+          const $div = $('<div>').addClass('form-check mb-2');
           
           const $checkbox = $('<input>')
             .attr({
@@ -174,10 +158,11 @@
             .on('change', adjustDays);
           
           const $label = $('<label>')
+            .addClass('form-check-label')
             .attr('for', service.name + 'Check')
             .text(`${service.name} - ${service.days} day(s)`);
           
-          $div.append($checkbox).append($label);
+          $div.append($checkbox).append($label).append('<br>');
           $container.append($div);
         });
       }

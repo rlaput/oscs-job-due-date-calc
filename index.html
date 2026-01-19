@@ -193,7 +193,7 @@
           await initializeHolidays();
         }
         return holidayData
-          .filter((h) => h.Type === "National")
+          .filter((h) => h.Type === "National" || h.HolidayName.toLowerCase().includes("auckland"))
           .map((h) => formatDateNZtoISO(h.ObservedDate));
       }
 
